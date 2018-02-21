@@ -182,3 +182,60 @@
   (assign c {"test-topic" [0]})
   (poll c 100)
   (send-message p "test-topic" "goodbye" "world"))
+
+
+
+
+
+
+
+
+(defn stupid-processor
+  []
+  (reify Processor
+    (init [_ _]
+      (println "Println I'm inited!!!!")
+      nil)
+    (process [_ _ _]
+      (println "Println It called me!!!")
+      nil)
+    (punctuate [_ _] nil)
+    (close [_]
+      (println "Println It closed me!!!")
+      nil)))
+
+
+(defn stupid-supplier
+  []
+  (reify
+    ProcessorSupplier
+    (get [_]
+      (stupid-processor))))
+
+
+(defn stupid-topology
+  []
+  (let [tb (TopologyBuilder.)]
+    (.. tb
+        (addSource "stupid-source"
+                   (into-array String ["stupid-topic"]))
+        (addProcessor "stupid-processor" (stupid-supplier)
+                      (into-array String ["stupid-source"])))))
+
+
+(defn stupid-streams-config
+  []
+  (StreamsConfig. {"application.id" "stupid-app"
+                   "bootstrap.servers" "localhost:9092"
+                   "key.serde" (.getClass (Serdes/String))
+                   "value.serde" (.getClass (Serdes/String))}))
+
+(defn start-stupid-streams
+  []
+  (let [p (producer default-props)
+        _ (send-message p "stupid-topic" "hello" "world") ;; make sure the topic exists
+        ks (KafkaStreams. (stupid-topology) (stupid-streams-config))]
+    (.close p)
+    (.start ks)
+    (def ks ks)
+    ks))
