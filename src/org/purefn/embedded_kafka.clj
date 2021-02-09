@@ -3,9 +3,7 @@
   (:require [com.stuartsierra.component :as com]
             [me.raynes.fs :as fs]
             [org.purefn.embedded-zookeeper :as zk])
-  (:import (kafka.server KafkaServerStartable KafkaConfig)
-           org.apache.kafka.common.utils.Time
-           scala.collection.JavaConversions))
+  (:import (kafka.server KafkaServerStartable KafkaConfig)))
 
 (def default-port 9092)
 

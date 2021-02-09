@@ -23,7 +23,6 @@
    [org.purefn.embedded-kafka :as embedded-kafka]
    [org.purefn.embedded-zookeeper :as embedded-zookeeper])
   (:import java.util.Properties
-           scala.collection.JavaConversions
            org.apache.kafka.common.serialization.Serdes
            kafka.admin.AdminClient
            (org.apache.kafka.clients.producer
@@ -152,7 +151,6 @@
   [ac]
   (->>
    (.listAllGroupsFlattened ac)
-   (JavaConversions/seqAsJavaList)
    (map #(.groupId %))))
 
 (defn group-offsets
