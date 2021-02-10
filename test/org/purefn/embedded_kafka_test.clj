@@ -26,7 +26,7 @@
   ;; Pick a random kafka broker port between 10000 and 20000 so the
   ;; tests don't collide with a proper running kafka broker or one
   ;; another
-  (let [kafka-port (+ (rand-int 10000) (rand-int 10000))]
+  (let [kafka-port (+ (rand-int 10000) 10000)]
     (with-start (system kafka-port)
       (let [group-id (str (UUID/randomUUID))
             test-props (assoc k/default-props
