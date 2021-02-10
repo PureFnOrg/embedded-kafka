@@ -23,19 +23,27 @@
 
 (deftest simple-produce-consume-test
   (with-start (system)
-    (let [test-props (assoc k/default-props
+    (let [group-id (str (UUID/randomUUID))
+          test-props (assoc k/default-props
                             "bootstrap.servers" "localhost:9092"
-                            "group.id" (str (UUID/randomUUID)))
+                            "group.id" group-id)
           c (k/consumer test-props)
           p (k/producer test-props)
           topic "greetings"]
 
-      (k/subscribe c topic)
+      (k/create-topics (k/admin-client) (k/new-topic topic 1))
 
-      (Thread/sleep 1000)
+      ;; Fails if we subscribe instead of assign
+      (k/assign c {topic [0]})
 
       @(k/send-message p {:topic topic
                           :key "hello"
                           :value "kafka"})
 
-      (is (seq (k/poll c 1000))))))
+      ;; Fails without this
+      (.seekToBeginning c [(k/topic-partition topic 0)])
+
+      (is (= [{:key "hello"
+               :value "kafka"}]
+             (map #(select-keys % [:key :value])
+                  (k/poll c 100)))))))

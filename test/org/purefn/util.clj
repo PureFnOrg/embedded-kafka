@@ -30,7 +30,8 @@
   (TopicPartition. topic (int partition)))
 
 (defn new-topic
-  ([topic partition-count] (new-topic topic partition-count 0))
+  ([^String topic partition-count]
+   (new-topic topic partition-count 1))
   ([^String topic partition-count replication-factor]
    (NewTopic. topic (int partition-count) (short replication-factor))))
 
@@ -52,10 +53,8 @@
     (.assign consumer topic-parts)))
 
 (defn subscribe
-  ([^KafkaConsumer consumer topic]
-   (.subscribe consumer [topic]))
-  ([^KafkaConsumer consumer topic & topics]
-   (.subscribe consumer (into [topic] topics))))
+  [^KafkaConsumer consumer topic & topics]
+  (.subscribe consumer (into [topic] topics)))
 
 (defn topics
   "Returns map of {topic-name #{partition-num}} for all extant topics."
@@ -118,13 +117,18 @@
 
    {topic-name {partition offset}}"
   [ac group-id]
-  (->> (.listGroupOffsets ac group-id)
-       (reduce (fn [topic-offsets [topic-partition offset]]
-                 (assoc-in topic-offsets
-                           [(.topic topic-partition)
-                            (.partition topic-partition)]
-                           offset))
-               {})))
+  (reduce (fn [topic-offsets [topic-partition offset-metadata]]
+            (assoc-in topic-offsets
+                      [(.topic topic-partition)
+                       (.partition topic-partition)]
+                      (.offset offset-metadata)))
+          {}
+          @(.partitionsToOffsetAndMetadata
+            (.listConsumerGroupOffsets ac group-id))))
+
+(defn create-topics
+  [ac topic & topics]
+  (.createTopics ac (into [topic] topics)))
 
 ;;;;
 ;; dev stuff
