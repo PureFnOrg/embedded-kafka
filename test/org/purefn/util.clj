@@ -1,49 +1,8 @@
-(ns dev
-  "Tools for interactive development with the REPL. This file should
-  not be included in a production build of the application.
-
-  Call `(reset)` to reload modified code and (re)start the system.
-
-  The system under development is `system`, referred from
-  `com.stuartsierra.component.repl/system`.
-
-  See also https://github.com/stuartsierra/component.repl"
-  (:require
-   [clojure.java.io :as io]
-   [clojure.java.javadoc :refer [javadoc]]
-   [clojure.pprint :refer [pprint]]
-   [clojure.reflect :refer [reflect]]
-   [clojure.repl :refer [apropos dir doc find-doc pst source]]
-   [clojure.set :as set]
-   [clojure.string :as string]
-   [clojure.test :as test]
-   [clojure.tools.namespace.repl :refer [refresh refresh-all clear]]
-   [com.stuartsierra.component :as component]
-   [com.stuartsierra.component.repl :refer [reset set-init start stop system]]
-   [org.purefn.embedded-kafka :as embedded-kafka]
-   [org.purefn.embedded-zookeeper :as embedded-zookeeper])
-  (:import
-   (org.apache.kafka.common.serialization Serdes)
-   (org.apache.kafka.clients.admin Admin AdminClient NewTopic)
-   (org.apache.kafka.clients.producer KafkaProducer ProducerRecord)
-   (org.apache.kafka.clients.consumer KafkaConsumer ConsumerRecord)
-   (org.apache.kafka.common TopicPartition)
-   (org.apache.kafka.streams KafkaStreams StreamsConfig)))
-
-;; Do not try to load source code from 'resources' directory
-(clojure.tools.namespace.repl/set-refresh-dirs "dev" "src" "test")
-
-(defn dev-system
-  "Constructs a system map suitable for interactive development."
-  []
-  (component/system-map
-   :zk (embedded-zookeeper/embedded-zk)
-   :kafka (component/using
-           (embedded-kafka/embedded-kafka)
-           [:zk])))
-
-(set-init (fn [_] (dev-system)))
-
+(ns org.purefn.util
+  (:import (org.apache.kafka.clients.admin AdminClient NewTopic)
+           (org.apache.kafka.clients.producer KafkaProducer ProducerRecord)
+           (org.apache.kafka.clients.consumer KafkaConsumer ConsumerRecord)
+           (org.apache.kafka.common TopicPartition)))
 
 (def default-props
   {"bootstrap.servers" "localhost:9092"
@@ -70,10 +29,14 @@
   [^String topic partition]
   (TopicPartition. topic (int partition)))
 
+(defn new-topic
+  ([topic partition-count] (new-topic topic partition-count 0))
+  ([^String topic partition-count replication-factor]
+   (NewTopic. topic (int partition-count) (short replication-factor))))
+
 ;;;;
 ;; consumers
 ;;;;
-
 
 (defn consumer
   [props]
@@ -87,6 +50,12 @@
                               (map (partial topic-partition topic) parts))
                             topics)]
     (.assign consumer topic-parts)))
+
+(defn subscribe
+  ([^KafkaConsumer consumer topic]
+   (.subscribe consumer [topic]))
+  ([^KafkaConsumer consumer topic & topics]
+   (.subscribe consumer (into [topic] topics))))
 
 (defn topics
   "Returns map of {topic-name #{partition-num}} for all extant topics."
