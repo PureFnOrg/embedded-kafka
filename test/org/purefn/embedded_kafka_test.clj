@@ -6,11 +6,12 @@
             [org.purefn.util :as k])
   (:import (java.util UUID)))
 
-(defn- system []
+(defn- system
+  [kafka-port]
   (component/system-map
    :zk (embedded-zookeeper/embedded-zk)
    :kafka (component/using
-           (embedded-kafka/embedded-kafka)
+           (embedded-kafka/embedded-kafka {:port kafka-port})
            [:zk])))
 
 (defmacro with-start
@@ -22,28 +23,40 @@
          (component/stop component#)))))
 
 (deftest simple-produce-consume-test
-  (with-start (system)
-    (let [group-id (str (UUID/randomUUID))
-          test-props (assoc k/default-props
-                            "bootstrap.servers" "localhost:9092"
-                            "group.id" group-id)
-          c (k/consumer test-props)
-          p (k/producer test-props)
-          topic "greetings"]
+  ;; Pick a random kafka broker port between 10000 and 20000 so the
+  ;; tests don't collide with a proper running kafka broker or one
+  ;; another
+  (let [kafka-port (+ (rand-int 10000) (rand-int 10000))]
+    (with-start (system kafka-port)
+      (let [group-id (str (UUID/randomUUID))
+            test-props (assoc k/default-props
+                              "bootstrap.servers" (str "localhost:" kafka-port)
+                              "group.id" group-id
+                              ;; this configures the starting offset
+                              ;; for newly created consumer
+                              ;; groups. The default is "latest" which
+                              ;; puts the group at the end of the
+                              ;; topic, "earliest" sets it at the
+                              ;; begining
+                              "auto.offset.reset" "earliest")
+            topic-name "greetings"]
+        (with-open [;; producers and in particular consumers need to
+                    ;; be closed to prevent resource leaks
+                    c (k/consumer test-props)
+                    p (k/producer test-props)]
 
-      (k/create-topics (k/admin-client) (k/new-topic topic 1))
+          (k/create-topics (k/admin-client) (k/new-topic topic-name 1))
 
-      ;; Fails if we subscribe instead of assign
-      (k/assign c {topic [0]})
+          @(k/send-message p {:topic topic-name
+                              :key "hello"
+                              :value "kafka"})
 
-      @(k/send-message p {:topic topic
-                          :key "hello"
-                          :value "kafka"})
+          (k/subscribe c topic-name)
 
-      ;; Fails without this
-      (.seekToBeginning c [(k/topic-partition topic 0)])
-
-      (is (= [{:key "hello"
-               :value "kafka"}]
-             (map #(select-keys % [:key :value])
-                  (k/poll c 100)))))))
+          (is (= [{:key "hello"
+                   :value "kafka"}]
+                 (map #(select-keys % [:key :value])
+                      ;; setting timeout high as sometimes takes some
+                      ;; time for the first poll of a consumer group
+                      ;; to work
+                      (k/poll c 5000)))))))))
