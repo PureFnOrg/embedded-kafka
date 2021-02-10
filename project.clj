@@ -1,4 +1,4 @@
-(defproject org.purefn/embedded-kafka "0.1.0"
+(defproject org.purefn/embedded-kafka "0.2.0"
   :description "An embedded kafka broker and zookeeper server"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
