@@ -1,0 +1,75 @@
+* org.purefn/embedded-kafka
+
+Run an in-process Kafka broker and Zookeeper for automated tests,
+development, experimentation, etc.
+
+This will run the latest (as of 2020-02) stable release release of
+Kafka, 2.7.0 with Scala 2.13.
+
+* Install
+
+Available on clojars:
+
+#+begin_src clojure
+[org.purefn/embedded-kafka "0.2.0"]
+#+end_src
+
+* Usage
+
+This library includes Lifecycle components (ala
+com.stuartsierra/component) for a Kafka broker and Zookeeper, which
+Kafka (for now!) still requires.
+
+** Quick Start
+
+#+begin_src clojure
+  (require '[com.stuartsierra.component :as component]
+	   '[org.purefn.embedded-kafka :as kafka]
+	   '[org.purefn.embedded-zookeper :as zk])
+
+  (defn system-with-embedded-kafka
+    []
+    (component/system-map
+     :zk (zk/embedded-zk)
+     :kafka (component/using
+	     (kafka/embedded-kafka)
+	     [:zk])))
+
+  (def running (system/start (system-with-embedded-kafka)))
+#+end_src
+
+This will start up a Kafka broker that your clients can connect to at
+"localhost:9092". For that matter you can also connect to Zookeper at
+"localhost:12182".
+
+Calling =component/stop= on the running system will shut down both.
+
+** Kafka Broker Options
+
+The constructor for the embedded kafka component -
+=org.purefn.embedded-kafkaf/embedded-kafka= accepts all the standard
+Kafka broker configuration parameters as an optional second parameter
+map. (see:
+https://jaceklaskowski.gitbooks.io/apache-kafka/content/kafka-server-KafkaConfig.html)
+
+It also supports several specific configuration parameters as map keys.
+- =:port=:: Override the port the broker will listen on (defaults to 9092)
+- =:log-dir=:: Override the data dir location. Could be used to keep
+  persistent data between runs. (defaults to random tmp dir)
+- =:broker-id=:: Override the integer broker id. (defaults to Kafka
+  picking one)
+
+For example:
+#+begin_src clojure
+  (kafka/embedded-kafka {:port 19092
+			 "background.threads" 3})
+#+end_src
+
+** Zookeeper Options
+
+The port that the embedded Zookeeper runs on can be overriden by
+passing a map with a =:port= key to the constructor.
+
+#+begin_src clojure
+  (zk/embedded-zk {:port 19182})
+#+end_src
