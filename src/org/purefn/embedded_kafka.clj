@@ -3,7 +3,9 @@
   (:require [com.stuartsierra.component :as com]
             [me.raynes.fs :as fs]
             [org.purefn.embedded-zookeeper :as zk])
-  (:import (kafka.server KafkaServerStartable KafkaConfig)))
+  (:import (kafka.server KafkaServer KafkaConfig)
+           (org.apache.kafka.common.utils Time)
+           (scala Some)))
 
 (def default-port 9092)
 
@@ -39,7 +41,7 @@
                               "offsets.topic.replication.factor" "1"})
                           broker-id
                           (assoc "broker.id" (Integer. broker-id))))
-                srv (KafkaServerStartable. config)]
+                srv (KafkaServer. config Time/SYSTEM (Some. "embedded-kafka") false)]
             (println "Starting EmbeddedKafka")
             (.startup srv)
             (println "EmbeddedKafka started on port" port)

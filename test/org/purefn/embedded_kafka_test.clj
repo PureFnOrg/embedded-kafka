@@ -59,4 +59,4 @@
                       ;; setting timeout high as sometimes takes some
                       ;; time for the first poll of a consumer group
                       ;; to work
-                      (k/poll c 5000)))))))))
+                      (k/poll c 10e3)))))))))
