@@ -3,15 +3,15 @@
 Run an in-process Kafka broker and Zookeeper for automated tests,
 development, experimentation, etc.
 
-This will run the latest (as of 2020-02) stable release release of
-Kafka, 2.7.0 with Scala 2.13.
+This will run the latest (as of 2022-10) stable release release of
+Kafka, 3.3.1 with Scala 2.13.
 
 * Install
 
 Available on clojars:
 
 #+begin_src clojure
-[org.purefn/embedded-kafka "0.2.0"]
+[org.purefn/embedded-kafka "0.3.0"]
 #+end_src
 
 * Usage
